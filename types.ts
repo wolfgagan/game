@@ -1,5 +1,6 @@
 
 export interface GameState {
+  characterName: string;
   health: number;
   mana: number;
   inventory: string[];

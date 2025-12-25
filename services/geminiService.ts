@@ -1,8 +1,6 @@
 
-import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { GameActionResponse, GameState } from "../types";
-
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
 const SYSTEM_INSTRUCTION = `
 You are a master Dungeon Master for "Chronicles of Aetheria", a dark, immersive fantasy RPG.
@@ -10,22 +8,25 @@ Your goal is to provide evocative, atmospheric storytelling based on player acti
 
 Rules:
 1. Keep narrative descriptions under 150 words.
-2. Be descriptive but maintain a sense of mystery and danger.
-3. Every response MUST include:
+2. Address the player by their Character Name.
+3. Be descriptive but maintain a sense of mystery and danger.
+4. Every response MUST include:
    - Narrative story text.
    - A short, vivid prompt (15-20 words) for an image generator representing the current scene.
    - Mechanical updates for health, mana, and inventory.
-4. Players start in the "Echoing Crypts".
-5. Use the provided JSON schema for responses.
+5. Players start in the "Echoing Crypts".
+6. Use the provided JSON schema for responses.
 `;
 
 export async function processGameAction(
   action: string,
   state: GameState
 ): Promise<GameActionResponse> {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
   const model = "gemini-3-flash-preview";
   
   const prompt = `
+    Character Name: ${state.characterName}
     Current State: ${JSON.stringify(state)}
     Player Action: ${action}
     
@@ -54,15 +55,17 @@ export async function processGameAction(
     }
   });
 
-  return JSON.parse(response.text || '{}') as GameActionResponse;
+  if (!response.text) throw new Error("No response from AI");
+  return JSON.parse(response.text) as GameActionResponse;
 }
 
 export async function generateSceneImage(prompt: string): Promise<string | null> {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: {
-        parts: [{ text: `Dark fantasy cinematic style: ${prompt}. Highly detailed, 4k, moody lighting, atmospheric.` }]
+        parts: [{ text: `Dark fantasy cinematic concept art: ${prompt}. High fidelity, atmospheric, moody.` }]
       },
       config: {
         imageConfig: {
